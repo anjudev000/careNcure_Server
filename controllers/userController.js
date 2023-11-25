@@ -367,8 +367,8 @@ const stripeSession = async(req,res,next)=>{
       ],
       customer:customer.id,
       mode:"payment",
-      success_url: "carencuresite.netlify.app/booking-success",
-      cancel_url:"carencuresite.netlify.app/payment-failed"
+      success_url: "https://carencuresite.netlify.app/booking-success",
+      cancel_url:"https://carencuresite.netlify.app/payment-failed"
     });
     res.status(200).json(session);
 
