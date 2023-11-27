@@ -19,7 +19,7 @@ try{
      from: process.env.EMAIL_USER,
      to:email,
      subject:'Link to Reset Your Password',
-     html: '<p>Hii ' + name + ',<a href="http://localhost:4200/user-reset-password?token=' + token + '">Click here</a>  to reset your password</p>'
+     html: '<p>Hii ' + name + ',<a href="https://carencuresite.netlify.app/user-reset-password?token=' + token + '">Click here</a>  to reset your password</p>'
 
   }
   await transporter.sendMail(mailOptions);
@@ -47,7 +47,7 @@ const sendLinkToDoctorMail = async(email,name,token,next)=>{
        from: process.env.EMAIL_USER,
        to:email,
        subject:'Link to Reset Your Password',
-       html: '<p>Hii  Dr.' + name + ',<a href="http://localhost:4200/doctor-reset-password?token=' + token + '">Click here</a>  to reset your password</p>'
+       html: '<p>Hii  Dr.' + name + ',<a href="https://carencuresite.netlify.app/doctor-reset-password?token=' + token + '">Click here</a>  to reset your password</p>'
   
     }
     await transporter.sendMail(mailOptions);
