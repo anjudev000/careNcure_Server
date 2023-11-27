@@ -38,7 +38,8 @@ const server = app.listen(3000,()=>{
 })
 
 const io = new Server(server,{cors: {
-  origin: ['http://localhost:4200', 'https://admin.socket.io'],
+  origin: ['http://localhost:4200','https://carencuresite.netlify.app', 'https://admin.socket.io'],
   credentials: true
 }})
 socketManager(io);
+
