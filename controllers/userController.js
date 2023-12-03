@@ -1,6 +1,7 @@
 const User = require('../models/userModel');
 const Doctor = require('../models/doctorModel');
 const Admin = require('../models/adminModel');
+const Transaction = require('../models/transactionModel');
 const Appointment = require('../models/appointmentModel');
 const Otp = require('../models/otpModel');
 const { sendOtpToMail } = require('../utils/sendotp');
@@ -367,8 +368,10 @@ const stripeSession = async(req,res,next)=>{
       ],
       customer:customer.id,
       mode:"payment",
-      success_url: "https://carencuresite.netlify.app/booking-success",
-      cancel_url:"https://carencuresite.netlify.app/payment-failed"
+      //success_url: "https://carencuresite.netlify.app/booking-success",
+      //cancel_url:"https://carencuresite.netlify.app/payment-failed"
+      success_url: "http://localhost:4200/booking-success",
+      cancel_url:"http://localhost:4200/payment-failed"
     });
     res.status(200).json(session);
 
@@ -462,8 +465,7 @@ const cancelBooking  = async(req,res,next)=>{
       adminRefund = 0.1 * appointment.amountPaid;
 
     }
-
-    const user = await User.findById(appointment.userId);
+     const user = await User.findById(appointment.userId);
     if(user){
       let prev = user.wallet;
       console.log(prev);
@@ -492,6 +494,13 @@ const cancelBooking  = async(req,res,next)=>{
         await doctor.save();
       }
     }
+    // Create a transaction log entry for crediting the user's wallet
+    const userTransaction = new Transaction({
+      userId: appointment.userId,
+      amount: userRefund, // The refunded amount
+      type: 'credit'
+    });
+    await userTransaction.save();
     appointment.status = "Cancelled";
     await appointment.save();
     res.status(200).json({message:'BOOKING CANCELLED, AMOUNT HAS BEEN CREDITED TO YOUR WALLET'})
@@ -555,6 +564,75 @@ const getPrescription = async(req,res,next)=>{
   }
 }
 
+const getAppStatus =  async(req,res,next)=>{
+  try{
+    const id = req.params.id;
+    const app = await Appointment.findById({_id:id});
+    if (!app) {
+      return res.status(404).json({ message: 'Appointment not found' });
+    }
+     // Extract relevant information for status
+     const appointmentStatus = {
+      status: app.status
+    };
+
+    res.status(200).json(appointmentStatus);
+  }catch(error){
+    next(error);
+  }
+}
+const debitTransaction = async (req, res, next) => {
+  try {
+    const { userId, amount } = req.body;
+    console.log(587,userId,amount);
+    // Create a transaction log entry for debiting the user's wallet
+    const userTransaction = new Transaction({
+      userId,
+      amount,
+      type: 'debit'
+    });
+
+    await userTransaction.save();
+    console.log('ok here,596');
+    res.status(200).json({ message: 'Payment successful' });
+  } catch (error) {
+    console.log('error in payment: ', error.message);
+    next(error);
+  }
+};
+
+const getTransactions = async(req,res,next)=>{
+  try{
+    const {userId} = req.params;
+    console.log(607,userId);
+    const transacitons = await Transaction.find({userId});
+    // Fetch all transactions for the user
+    const transactions = await Transaction.find({ userId });
+    console.log(610,transactions);
+    // Create an array to store transaction statements
+    const transactionStatements = [];
+
+    // Iterate through transactions and create statements
+    transactions.forEach((transaction) => {
+      console.log('here');
+      const formattedDate = new Date(transaction.timestamp).toLocaleString('en-US', {
+        timeZone: 'Asia/Kolkata', 
+        dateStyle: 'short',
+        timeStyle: 'short',
+      });
+
+      const statement = `${transaction.type === 'credit' ? '+' : '-'}${transaction.amount} ${transaction.type}ed on ${formattedDate}`;
+      transactionStatements.push(statement);
+    });
+
+    console.log(transactionStatements,619);
+    res.status(200).json(transactionStatements);
+  }
+  catch(error){
+    next(error);
+  }
+}
+
 module.exports = {
   register,
   otpVerification,
@@ -575,5 +653,8 @@ module.exports = {
   cancelBooking,
   walletAmount,
   deductWallet,
-  getPrescription
+  getPrescription,
+  getAppStatus,
+  debitTransaction,
+  getTransactions
 }

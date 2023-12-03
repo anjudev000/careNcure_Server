@@ -1,6 +1,7 @@
 const Doctor = require('../models/doctorModel');
 const User = require('../models/userModel');
 const Appointment = require('../models/appointmentModel');
+const Transaction = require('../models/transactionModel');
 const { securePassword } = require('../utils/passwordHashing');
 const { sendOtpToMail } = require('../utils/sendotp');
 const Otp = require('../models/otpModel');
@@ -320,6 +321,13 @@ const cancelAppoitment = async (req, res, next) => {
         await doctor.save();
       }
     }
+      // Create a transaction log entry for crediting the user's wallet
+      const userTransaction = new Transaction({
+        userId: appointment.userId,
+        amount: userRefund, // The refunded amount
+        type: 'credit'
+      });
+      await userTransaction.save();
     appointment.status = "Cancelled";
     await appointment.save();
     return res.status(200).json({ message: 'BOOKING CANCELLED' })
@@ -416,7 +424,7 @@ const getDashboardData = async (req, res, next) => {
     const monthlyAppointments = appointments.filter(appointment => {
       return new Date(appointment.slotBooked).getMonth() === currentMonth;
     });
-    console.log(419,monthlyAppointments);
+    console.log(419, monthlyAppointments);
     let monthlyRevenue = 0;
     let monthlyTotalAppointments = 0;
     monthlyAppointments.forEach(appointment => {
@@ -425,15 +433,16 @@ const getDashboardData = async (req, res, next) => {
     });
 
     // Weekly details
-    const lastWeekDate = new Date();
-    lastWeekDate.setDate(new Date().getDate() - 7);
-    const weeklyAppointments = appointments.filter(appointment => new Date(appointment.slotBooked) > lastWeekDate);
+    const startOfWeek = new Date();
+    startOfWeek.setHours(0, 0, 0, 0);
+    const weeklyAppointments = appointments.filter(appointment => new Date(appointment.slotBooked) >= startOfWeek);
     let weeklyRevenue = 0;
     let weeklyTotalAppointments = 0;
     weeklyAppointments.forEach(appointment => {
       weeklyRevenue += appointment.amountPaid || 0;
       weeklyTotalAppointments++;
     });
+
     // Additional logic for appointments by month
     let appointmentsByMonth = {};
     const currentYear = new Date().getFullYear();
@@ -444,9 +453,9 @@ const getDashboardData = async (req, res, next) => {
         totalAmount: 0
       };
     }
-    console.log(447,appointmentsByMonth);
+    console.log(447, appointmentsByMonth);
     appointments.forEach(appointment => {
-      if(appointment.doctorId.toString() === doctor._id.toString()){
+      if (appointment.doctorId.toString() === doctor._id.toString()) {
         const appointmentYear = new Date(appointment.slotBooked).getFullYear();
         if (currentYear === appointmentYear) {
           const month = new Date(appointment.slotBooked).getMonth() + 1;
@@ -455,12 +464,12 @@ const getDashboardData = async (req, res, next) => {
             appointmentsByMonth[key] = { month: key, noOfAppointments: 0, totalAmount: 0 };
           }
           appointmentsByMonth[key].noOfAppointments++;
-          appointmentsByMonth[key].totalAmount += appointment.amountPaid|| 0;
+          appointmentsByMonth[key].totalAmount += appointment.amountPaid || 0;
         }
       }
-    
+
     });
-    console.log(463,appointmentsByMonth);
+    console.log(463, appointmentsByMonth);
 
     res.status(200).json({
       monthlyAppointments: Object.values(appointmentsByMonth),
@@ -474,10 +483,28 @@ const getDashboardData = async (req, res, next) => {
       annualTotalAppointments
     });
   } catch (error) {
-    console.log('error in dashboard data',error.message);
+    console.log('error in dashboard data', error.message);
     next(error);
   }
 };
+
+const getAppStatus = async (req, res, next) => {
+  try {
+    const appointmentId = req.params.appointmentId;
+    const app = await Appointment.findOne({ appointmentId })
+    if (!app) {
+      return res.status(404).json({ message: 'Appointment not found' });
+    }
+    // Extract relevant information for status
+    const appointmentStatus = {
+      status: app.status
+    };
+
+    res.status(200).json(appointmentStatus);
+  } catch (error) {
+    next(error);
+  }
+}
 
 
 module.exports = {
@@ -500,5 +527,6 @@ module.exports = {
   confirmAppointment,
   endAppointment,
   prescription,
-  getDashboardData
+  getDashboardData,
+  getAppStatus
 }

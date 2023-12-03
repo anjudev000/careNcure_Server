@@ -50,6 +50,7 @@ doctorRoute.patch('/confirm-booking/:id',jwtHelper.verifyJwtToken,isDoctorBlocke
 doctorRoute.put('/appointment-completed/:id',jwtHelper.verifyJwtToken,isDoctorBlocked,doctorController.endAppointment);
 doctorRoute.put('/generate-prescription/:id',jwtHelper.verifyJwtToken,isDoctorBlocked,doctorController.prescription);
 doctorRoute.get('/dashboard-data/:doctorId',doctorController.getDashboardData);
+doctorRoute.get('/get-appointment-status/:appointmentId',doctorController.getAppStatus);
 
 
 module.exports = doctorRoute;
