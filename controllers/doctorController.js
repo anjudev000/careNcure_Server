@@ -278,21 +278,68 @@ const getDocStatus = async (req, res, next) => {
   }
 }
 
+// const getAppoitmentList = async (req, res, next) => {
+//   try {
+//     const { doctorId } = req.params;
+//     const appointemnts = await Appointment.find({ doctorId: doctorId })
+//       .sort({ createdAt: -1 })
+//       .populate("userId")
+//       .populate("doctorId")
+//       .exec();
+//     if (!appointemnts) return res.status(404).json({ message: 'No Appointments Scheduled' });
+//     return res.status(200).json({ appointments: appointemnts })
+//   } catch (error) {
+//     console.log('error in getting appointment list: ', error.message);
+//     next(error);
+//   }
+// }
+
 const getAppoitmentList = async (req, res, next) => {
   try {
     const { doctorId } = req.params;
-    const appointemnts = await Appointment.find({ doctorId: doctorId })
+    console.log(doctorId, 300);
+    const { page=1, pageSize, filter = '' } = req.query;
+    // Define your filter criteria based on the 'filter' parameter
+    console.log(page, pageSize, filter);
+    console.log(typeof(page),typeof(pageSize));
+    // Convert page and pageSize to numbers
+    const pageNumber = parseInt(page, 10) || 1;  // Default to 1 if page is not provided or not a valid number
+    const itemsPerPage = parseInt(pageSize, 10) || 8;  // Default to 5 if pageSize is not provided or not a valid number
+
+
+    const filterCriteria = {
+      $or: [
+        { 'userId.fullName': { $regex: filter, $options: 'i' } }, // Case-insensitive name search
+        { 'slotBooked': { $regex: filter, $options: 'i' } }, // Case-insensitive date search
+        // Add more filter criteria as needed
+      ],
+    };
+
+    const appointemnts = await Appointment.find({
+      doctorId: doctorId,
+      ...filterCriteria,
+    })
       .sort({ createdAt: -1 })
-      .populate("userId")
-      .populate("doctorId")
+      .populate('userId')
+      .populate('doctorId')
+      .skip((pageNumber - 1) * itemsPerPage)
+      .limit(itemsPerPage)
       .exec();
+
+    const totalItems = await Appointment.countDocuments({
+      doctorId: doctorId,
+      ...filterCriteria,
+    });
+
     if (!appointemnts) return res.status(404).json({ message: 'No Appointments Scheduled' });
-    return res.status(200).json({ appointments: appointemnts })
+
+    return res.status(200).json({ appointments: appointemnts, totalItems: totalItems });
   } catch (error) {
     console.log('error in getting appointment list: ', error.message);
     next(error);
   }
-}
+};
+
 
 const cancelAppoitment = async (req, res, next) => {
   try {
@@ -321,13 +368,13 @@ const cancelAppoitment = async (req, res, next) => {
         await doctor.save();
       }
     }
-      // Create a transaction log entry for crediting the user's wallet
-      const userTransaction = new Transaction({
-        userId: appointment.userId,
-        amount: userRefund, // The refunded amount
-        type: 'credit'
-      });
-      await userTransaction.save();
+    // Create a transaction log entry for crediting the user's wallet
+    const userTransaction = new Transaction({
+      userId: appointment.userId,
+      amount: userRefund, // The refunded amount
+      type: 'credit'
+    });
+    await userTransaction.save();
     appointment.status = "Cancelled";
     await appointment.save();
     return res.status(200).json({ message: 'BOOKING CANCELLED' })

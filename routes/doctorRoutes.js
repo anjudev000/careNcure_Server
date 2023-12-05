@@ -44,7 +44,7 @@ doctorRoute.post('/add-time-slots/:doctorId',jwtHelper.verifyJwtToken,isDoctorBl
 doctorRoute.get('/available-slots/:doctorId/:date',jwtHelper.verifyJwtToken,isDoctorBlocked,doctorController.getAvailableSlot);
 doctorRoute.get('/booked-slots/:doctorId/:date',jwtHelper.verifyJwtToken,isDoctorBlocked,doctorController.bookedSlots);
 doctorRoute.get('/getStatus/:doctorId',jwtHelper.verifyJwtToken,isDoctorBlocked,doctorController.getDocStatus);
-doctorRoute.get('/doctor-appointemnts/:doctorId',jwtHelper.verifyJwtToken,isDoctorBlocked,doctorController.getAppoitmentList);
+doctorRoute.get('/doctor-appointemnts/:doctorId',doctorController.getAppoitmentList);
 doctorRoute.patch('/cancel-booking/:id',jwtHelper.verifyJwtToken,isDoctorBlocked,doctorController.cancelAppoitment);
 doctorRoute.patch('/confirm-booking/:id',jwtHelper.verifyJwtToken,isDoctorBlocked,doctorController.confirmAppointment);
 doctorRoute.put('/appointment-completed/:id',jwtHelper.verifyJwtToken,isDoctorBlocked,doctorController.endAppointment);
