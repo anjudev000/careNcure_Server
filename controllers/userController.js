@@ -308,12 +308,6 @@ const createAppointment = async(metadata,paymentdata,req,res)=>{
       doctor.slots.splice(slotIndex, 1);
     }
   
-    // Add the specific time slot to the bookedSlots array
-    // doctor.bookedSlots.push({
-    //   date: bookedSlot.date,
-    //   timeslots: [slotTime], // Only add the specific time slot
-    // });
-    
     const dateExist = doctor.bookedSlots.find((dateExist)=>dateExist.date === bookedSlot.date);
     if(dateExist){
       dateExist.timeslots.push(slotTime);
@@ -368,10 +362,10 @@ const stripeSession = async(req,res,next)=>{
       ],
       customer:customer.id,
       mode:"payment",
-      //success_url: "https://carencuresite.netlify.app/booking-success",
-      //cancel_url:"https://carencuresite.netlify.app/payment-failed"
-      success_url: "http://localhost:4200/booking-success",
-      cancel_url:"http://localhost:4200/payment-failed"
+      success_url: "https://carencuresite.netlify.app/booking-success",
+      cancel_url:"https://carencuresite.netlify.app/payment-failed"
+      // success_url: "http://localhost:4200/booking-success",
+      // cancel_url:"http://localhost:4200/payment-failed"
     });
     res.status(200).json(session);
 
@@ -385,7 +379,6 @@ const stripeSession = async(req,res,next)=>{
 const webhooks = async(req,res)=>{
   console.log('inside webhook');
   let endpointSecret;
-  // endpointSecret =process.env.STRIPE_WEBHOOK_KEY;
   const payload = req.body;
   console.log(366,payload);
   const sig = req.headers['stripe-signature'];
@@ -416,7 +409,6 @@ const webhooks = async(req,res)=>{
 
   
   
-  // response.send().end();
 
 }
 
