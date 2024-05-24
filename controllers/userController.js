@@ -116,7 +116,6 @@ const otpVerification = async (req, res, next) => {
 
 
 const login = (req, res, next) => {
-  console.log("inside login controller");
   passport.authenticate('user', (err, user, info) => {
     if (err) {
       return next(err);
@@ -180,6 +179,7 @@ const forgetSendLink = async (req, res, next) => {
 const updatePassword = async (req, res, next) => {
   try {
     const userId = req.body.userId;
+    console.log("inside pass update controller",userId)
     const newPassword = req.body.newPassword;
     console.log('new password is:', newPassword);
     const hashedPassword = await securePassword(newPassword);
