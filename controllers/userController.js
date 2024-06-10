@@ -22,7 +22,6 @@ const stripe=require("stripe")(process.env.STRIPE_SECRET_KEY);
 const register = async (req, res, next) => {
   try {
     const { fullName, mobile_num, email, password } = req.body;
-    console.log("testing line 26", fullName, mobile_num, email, password);
     const newUser = new User({
       fullName,
       mobile_num,
@@ -179,11 +178,8 @@ const forgetSendLink = async (req, res, next) => {
 const updatePassword = async (req, res, next) => {
   try {
     const userId = req.body.userId;
-    console.log("inside pass update controller",userId)
     const newPassword = req.body.newPassword;
-    console.log('new password is:', newPassword);
     const hashedPassword = await securePassword(newPassword);
-    console.log('hashedPassword is:', hashedPassword);
     const updateUser = await User.findByIdAndUpdate({ _id: userId }, { $set: { password: hashedPassword, token: '' } });
     res.status(200).json({ message: 'Password changed successfully' });
 
@@ -228,7 +224,6 @@ const updateProfile = async(req,res,next)=>{
     
     const userId= req.params.userId;
     const updateFields = req.body;
-    console.log(195,updateFields);
   if(req.file){
     //upload the file to cloudinary
   
@@ -273,7 +268,12 @@ const getDoctor = async(req,res,next)=>{
 }
 
 const createAppointment = async(metadata,paymentdata,req,res)=>{
+  console.log("inside create appoinmnt")
   const {userId,doctorId,slotBooked,slotDate,slotTime} = metadata;
+  console.log("line 273...................",slotDate,slotTime);
+  // Convert slotDate to the desired format
+  const convertedSlotDate = new Date(slotDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }).replace(/\s/g, ' ');
+
   try{
     const appointment = new Appointment({
       userId,
@@ -285,18 +285,21 @@ const createAppointment = async(metadata,paymentdata,req,res)=>{
       amountPaid:paymentdata.amount_received/100
     });
     appointment.save();
+    console.log("line 289",appointment);
    const doctor = await Doctor.findById(doctorId);
    if(!doctor) return res.status(404).json({error: 'Doctor not found'});
 
+   console.log("line 293",doctor);
   const bookedSlot = doctor.slots.find((slot) => {
-    return slot.date === slotDate && slot.timeslots.includes(slotTime);
+    return slot.date === convertedSlotDate && slot.timeslots.includes(slotTime);
   });
+  console.log("line 297",bookedSlot);
   
   if (!bookedSlot) return res.status(404).json({ error: 'Slot not found' });
   
   // Find the index of the specific time slot in doctor's slots
   const slotIndex = doctor.slots.findIndex((slot) => {
-    return slot.date === slotDate && slot.timeslots.includes(slotTime);
+    return slot.date === convertedSlotDate && slot.timeslots.includes(slotTime);
   });
   
   if (slotIndex !== -1) {
@@ -362,10 +365,10 @@ const stripeSession = async(req,res,next)=>{
       ],
       customer:customer.id,
       mode:"payment",
-      success_url: "https://carencuresite.netlify.app/booking-success",
-      cancel_url:"https://carencuresite.netlify.app/payment-failed"
-      // success_url: "http://localhost:4200/booking-success",
-      // cancel_url:"http://localhost:4200/payment-failed"
+      // success_url: "https://carencuresite.netlify.app/booking-success",
+      // cancel_url:"https://carencuresite.netlify.app/payment-failed"
+      success_url: "http://localhost:4200/booking-success",
+      cancel_url:"http://localhost:4200/payment-failed"
     });
     res.status(200).json(session);
 
@@ -377,12 +380,9 @@ const stripeSession = async(req,res,next)=>{
 }
 
 const webhooks = async(req,res)=>{
-  console.log('inside webhook');
   let endpointSecret;
   const payload = req.body;
-  console.log(366,payload);
   const sig = req.headers['stripe-signature'];
-  console.log(369,sig);
   let data;
   let eventType;
   if(endpointSecret){
@@ -390,7 +390,6 @@ const webhooks = async(req,res)=>{
 
     try {
       event = stripe.webhooks.constructEvent(payload, sig, endpointSecret);
-      console.log(324,'webhooks verified');
     } catch (err) {
       console.log(32666,err.message);
       res.status(400).json({success:true});
@@ -405,12 +404,7 @@ const webhooks = async(req,res)=>{
         createAppointment(customer.metadata, data, req,res);
       })
     }
-  }
-
-  
-  
-
-}
+  }}
 
 const getBookingList = async(req,res,next)=>{
   try{
@@ -460,9 +454,7 @@ const cancelBooking  = async(req,res,next)=>{
      const user = await User.findById(appointment.userId);
     if(user){
       let prev = user.wallet;
-      console.log(prev);
       user.wallet += userRefund;
-      console.log(460,user.wallet);
       await user.save();
     }
     const admin = await Admin.findOne();
@@ -576,7 +568,6 @@ const getAppStatus =  async(req,res,next)=>{
 const debitTransaction = async (req, res, next) => {
   try {
     const { userId, amount } = req.body;
-    console.log(587,userId,amount);
     // Create a transaction log entry for debiting the user's wallet
     const userTransaction = new Transaction({
       userId,
@@ -585,7 +576,6 @@ const debitTransaction = async (req, res, next) => {
     });
 
     await userTransaction.save();
-    console.log('ok here,596');
     res.status(200).json({ message: 'Payment successful' });
   } catch (error) {
     console.log('error in payment: ', error.message);
@@ -596,17 +586,14 @@ const debitTransaction = async (req, res, next) => {
 const getTransactions = async(req,res,next)=>{
   try{
     const {userId} = req.params;
-    console.log(607,userId);
     const transacitons = await Transaction.find({userId});
     // Fetch all transactions for the user
     const transactions = await Transaction.find({ userId });
-    console.log(610,transactions);
     // Create an array to store transaction statements
     const transactionStatements = [];
 
     // Iterate through transactions and create statements
     transactions.forEach((transaction) => {
-      console.log('here');
       const formattedDate = new Date(transaction.timestamp).toLocaleString('en-US', {
         timeZone: 'Asia/Kolkata', 
         dateStyle: 'short',
@@ -617,7 +604,6 @@ const getTransactions = async(req,res,next)=>{
       transactionStatements.push(statement);
     });
 
-    console.log(transactionStatements,619);
     res.status(200).json(transactionStatements);
   }
   catch(error){

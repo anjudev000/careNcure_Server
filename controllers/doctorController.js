@@ -178,7 +178,6 @@ const updateprofile = async (req, res, next) => {
   try {
     const doctorId = req.params.doctorId;
     const updateFields = req.body;
-    console.log(17888, updateFields);
     if (req.file) {
       const result = await cloudinary.uploader.upload(req.file.path, {
         folder: 'careNcure_doctor_uploads',
@@ -297,11 +296,8 @@ const getDocStatus = async (req, res, next) => {
 const getAppoitmentList = async (req, res, next) => {
   try {
     const { doctorId } = req.params;
-    console.log(doctorId, 300);
     const { page=1, pageSize, filter = '' } = req.query;
     // Define your filter criteria based on the 'filter' parameter
-    console.log(page, pageSize, filter);
-    console.log(typeof(page),typeof(pageSize));
     // Convert page and pageSize to numbers
     const pageNumber = parseInt(page, 10) || 1;  // Default to 1 if page is not provided or not a valid number
     const itemsPerPage = parseInt(pageSize, 10) || 8;  // Default to 5 if pageSize is not provided or not a valid number
@@ -350,9 +346,7 @@ const cancelAppoitment = async (req, res, next) => {
     const user = await User.findById(appointment.userId);
     if (user) {
       let prev = user.wallet;
-      console.log(prev);
       user.wallet += userRefund;
-      console.log(460, user.wallet);
       await user.save();
     }
     const doctor = await Doctor.findById(appointment.doctorId);
@@ -422,7 +416,6 @@ const endAppointment = async (req, res, next) => {
 
     if (!doctor) return res.status(404).json({ message: 'Doctor Not Found' });
     const amount = doctor.wallet + doctorFees;
-    console.log('Amount for doctor:', amount);
     await Doctor.findByIdAndUpdate(docId, { wallet: amount }, { new: true });
     return res.status(200).json({ message: 'Appointment Ended' });
   } catch (error) {
@@ -471,7 +464,6 @@ const getDashboardData = async (req, res, next) => {
     const monthlyAppointments = appointments.filter(appointment => {
       return new Date(appointment.slotBooked).getMonth() === currentMonth;
     });
-    console.log(419, monthlyAppointments);
     let monthlyRevenue = 0;
     let monthlyTotalAppointments = 0;
     monthlyAppointments.forEach(appointment => {
@@ -500,7 +492,6 @@ const getDashboardData = async (req, res, next) => {
         totalAmount: 0
       };
     }
-    console.log(447, appointmentsByMonth);
     appointments.forEach(appointment => {
       if (appointment.doctorId.toString() === doctor._id.toString()) {
         const appointmentYear = new Date(appointment.slotBooked).getFullYear();
@@ -516,7 +507,6 @@ const getDashboardData = async (req, res, next) => {
       }
 
     });
-    console.log(463, appointmentsByMonth);
 
     res.status(200).json({
       monthlyAppointments: Object.values(appointmentsByMonth),
